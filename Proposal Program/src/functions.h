@@ -2,7 +2,7 @@
 #define FUNCTIONS_H_INCLUDED
 
 #endif // FUNCTIONS_H_INCLUDED
-#include "display.h"
+
 #define ID_SIZE 16
 #define FIRST_NAME 64
 #define LAST_NAME 64
@@ -14,13 +14,14 @@ void printLine(char character, int length);
 void replace_spaces(char str[]);
 void textScan(char* buffer);
 int compareByLastName(const void* a, const void* b);
-int countStudents(const char* file_path);
+int countStudentsInSection(const char* section_file_path);
 int displayMenu();
 void deleteSection(int sectionNumber);
 void addSection();
-void displayStudentRecord(int sectionIndex, int choice);
-void displayGradesheet(const char* filename);
-const char* openSection(int sectionIndex, int choice);
+void displayStudentRecord(int sectionIndex);
+void displayGradesheet(int sectionIndex);
+const char* openSection(int sectionIndex);
+void addStudentRecord(int sectionIndex);
 
 
 
@@ -39,14 +40,20 @@ typedef struct {
     char status[8];
 } MENU;
 
-typedef struct{
+typedef struct {
     char student_id[ID_SIZE];
+    char last_name[LAST_NAME];
+    char first_name[FIRST_NAME];
+    char sex;
     int written_tscore;
     int perform_tscore;
     int exam_score;
+    int average;
     int total;
     char status[8];
 } GRADESHEET;
+
+
 
 void printLine(char character, int length){
     for(int i = 0; i < length; i++){
@@ -54,6 +61,7 @@ void printLine(char character, int length){
     }
     printf("\n");
 }
+
 
 void replace_spaces(char str[]) {
     int length = strlen(str);
@@ -65,47 +73,53 @@ void replace_spaces(char str[]) {
     }
 }
 
-void textScan(char* buffer) {
-    fgets(buffer, sizeof(buffer), stdin);
-    buffer[strcspn(buffer, "\n")] = '\0';
-}
+
 int compareByLastName(const void* a, const void* b) {
     const STUDENT* studentA = (const STUDENT*)a;
     const STUDENT* studentB = (const STUDENT*)b;
     return strcmp(studentA->last_name, studentB->last_name);
 }
 
-int countStudents(const char* file_path) {
-    FILE* file = fopen(file_path, "r");
 
-    int count = 0;
-    char line[1024];
+int countStudentsInSection(const char* section_file_path) {
+    FILE* section_file = fopen(section_file_path, "r");
+        if (section_file == NULL) {
+            printf("Error countStudentsInSection for: %s\n", section_file_path);
+            return 0;
+        }
+
+    int student_count = 0;
+    char line[PATH_SIZE];
+
     // Skip the header line
-    fgets(line, sizeof(line), file);
-    while (fgets(line, sizeof(line), file)) {
-        count++;
+    fgets(line, sizeof(line), section_file);
+
+    while (fgets(line, sizeof(line), section_file)) {
+        // Each line represents a student record
+        student_count++;
     }
 
-    fclose(file);
-    return count;
+    fclose(section_file);
+    return student_count;
 }
+
 
 
 void deleteSection(int sectionNumber) {
     // Open the section_menu.csv file for reading
     FILE* menu_file = fopen("..\\..\\Proposal Program\\src\\main files\\section_menu.csv", "r");
-    if (menu_file == NULL) {
-        printf("Error deleteSection file..\n");
-        return;
-    }
+        if (menu_file == NULL) {
+            printf("Error deleteSection file..\n");
+            return;
+        }
 
     // Create a temporary file to store the updated contents of section_menu.csv
     FILE* temp_menu_file = fopen("..\\..\\Proposal Program\\src\\main files\\temp_menu.csv", "w");
-    if (temp_menu_file == NULL) {
-        printf("Error creating temporary menu file..\n");
-        fclose(menu_file);
-        return;
-    }
+        if (temp_menu_file == NULL) {
+            printf("Error creating temporary menu file..\n");
+            fclose(menu_file);
+            return;
+        }
 
     // Copy the header line from section_menu.csv to the temporary file
     char header[1024];
@@ -126,9 +140,7 @@ void deleteSection(int sectionNumber) {
         fputs(line, temp_menu_file);
     }
 
-    // Close the section_menu.csv file
     fclose(menu_file);
-    // Close the temporary menu file
     fclose(temp_menu_file);
 
     // Remove the original section_menu.csv file
@@ -172,9 +184,7 @@ void deleteSection(int sectionNumber) {
         fputs(line, temp_records_file);
     }
 
-    // Close the filepath_records.txt file
     fclose(records_file);
-    // Close the temporary records file
     fclose(temp_records_file);
 
     // Remove the original filepath_records.txt file
@@ -191,116 +201,86 @@ void deleteSection(int sectionNumber) {
         return;
     }
 
-    // Open the filepath_sheets.txt file for reading
-    FILE* sheets_file = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_sheets.txt", "r");
-    if (sheets_file == NULL) {
-        printf("Error deleteSection sheets file..\n");
-        return;
-    }
-
-    // Create a temporary file to store the updated contents of filepath_sheets.txt
-    FILE* temp_sheets_file = fopen("..\\..\\Proposal Program\\src\\main files\\temp_sheets.txt", "w");
-    if (temp_sheets_file == NULL) {
-        printf("Error creating temporary sheets file..\n");
-        fclose(sheets_file);
-        return;
-    }
-
-    // Copy all lines except the one to be deleted to the temporary file
-    lineCount = 0;
-    while (fgets(line, sizeof(line), sheets_file)) {
-        lineCount++;
-
-        // Skip the line if it matches the section number to be deleted
-        if (lineCount == sectionNumber)
-            continue;
-
-        fputs(line, temp_sheets_file);
-    }
-
-    // Close the filepath_sheets.txt file
-    fclose(sheets_file);
-    // Close the temporary sheets file
-    fclose(temp_sheets_file);
-
-    // Remove the original filepath_sheets.txt file
-    if (remove("..\\..\\Proposal Program\\src\\main files\\filepath_sheets.txt") != 0) {
-        printf("Error deleting filepath_sheets.txt file..\n");
-        displayMenu();
-    }
-
-    // Rename the temporary file to filepath_sheets.txt
-    if (rename("..\\..\\Proposal Program\\src\\main files\\temp_sheets.txt", "..\\..\\Proposal Program\\src\\main files\\filepath_sheets.txt") != 0) {
-        printf("Error renaming temporary sheets file..\n");
-        displayMenu();
-    }
-
     system("cls");
     printf("Section %d deleted successfully.\n", sectionNumber);
     displayMenu();
 }
 
-int displayMenu() {
-    FILE* menu_file;
-    menu_file = fopen("..\\..\\Proposal Program\\src\\main files\\section_menu.csv", "r");
 
-    if (menu_file == NULL) {
-        printf("Error displayMenu file..\n");
-        return 1;
-    }
+
+
+
+int displayMenu() {
+
+    FILE* menu_file = fopen("..\\..\\Proposal Program\\src\\main files\\section_menu.csv", "r");
+        if (menu_file == NULL) {
+            printf("Error opening the section_menu.csv file in displayMenu.\n");
+            return 1;
+        }
 
     MENU menu_info[BODY_SIZE];
     int num_section = 0;
 
     // Skip the header line
     char header[100];
-    char line[1024];
     fgets(header, sizeof(header), menu_file);
 
+    char line[1024];
     while (fgets(line, sizeof(line), menu_file)) {
         if (num_section == BODY_SIZE) {
             printf("Maximum number of records reached..\n");
             break;
         }
 
-        sscanf(line, "%[^,],%[^,],%d,%d,%[^,],%[^,],%[^\n]\n",
+        sscanf(line, "%[^,],%[^,],%*d,%*d,%[^\n]\n",
                menu_info[num_section].course_menu,
                menu_info[num_section].year_section,
-               &menu_info[num_section].student_number,
-               &menu_info[num_section].passer_number,
                menu_info[num_section].status);
 
-            const char* student_file_path = "..\\..\\Proposal Program\\src\\main files\\BSCS_1A_StudentRecords.csv";
-        const char* passer_file_path = "..\\..\\Proposal Program\\src\\main files\\BSCS_1A_Passers.csv";
-        menu_info[num_section].student_number = countStudents(student_file_path);
-        menu_info[num_section].passer_number = countStudents(passer_file_path);
-
         num_section++;
+    }
 
-            if (num_section == BODY_SIZE) {
-                printf("Maximum number of records reached..\n");
-                break;
-            }
+    fclose(menu_file);
+
+    printf("\nNumber of Sections: %d\n", num_section);
+    printLine('=', 59);
+    printf("| |       COURSE       | YEAR AND LEVEL | NO. OF STUDENTS |\n");
+    printLine('=', 59);
+
+    FILE* txtFile = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_records.txt", "r");
+        if (txtFile == NULL) {
+            printf("Error opening the filepath_records.txt file in displayMenu.\n");
+            exit (1);
         }
 
-        fclose(menu_file);
+    char file_path[PATH_SIZE];
+    int section_count = 0;
+    while (fgets(file_path, sizeof(file_path), txtFile)) {
+        // Remove the trailing newline character
+        file_path[strcspn(file_path, "\n")] = '\0';
 
-        printf("\nNumber of Sections: %d\n", num_section);
-        printLine('=', 79);
-        printf("| |       COURSE       | YEAR AND LEVEL | NO. OF STUDENTS | NUMBER OF PASSERS |\n");
-        printLine('=', 79);
-        for (int i = 0; i < num_section; i++) {
-            printf("|%d| %-19s|  %-14s| %-15d | %-17d |\n",
-                   i + 1,
-                   menu_info[i].course_menu,
-                   menu_info[i].year_section,
-                   menu_info[i].student_number,
-                   menu_info[i].passer_number);
-        }
-        printLine('=', 79);
+        // Call countStudentsInSection
+        int student_count = countStudentsInSection(file_path);
+        menu_info[section_count].student_number = student_count;
 
-    return num_section;
+        printf("|%d| %-19s|  %-14s| %-15d |\n",
+               section_count + 1,
+               menu_info[section_count].course_menu,
+               menu_info[section_count].year_section,
+               menu_info[section_count].student_number);
+
+        section_count++;
+    }
+
+    fclose(txtFile);
+
+    printLine('=', 59);
+
+    return section_count;
 }
+
+
+
 
 
 void addSection(){
@@ -308,82 +288,65 @@ void addSection(){
     char section_year[8];
     char new_section_name[256];
     char file_section_records[PATH_SIZE];
-    char file_section_sheet[PATH_SIZE];
 
     printf("What is the course code?\n");
-    scanf("%15s", section_course); // Read up to 15 characters for section_course
+    scanf("%15s", section_course);
 
     printf("What is the year and section?\n");
     scanf("%10s", section_year);
 
     snprintf(file_section_records, PATH_SIZE, "..\\\\..\\\\Proposal Program\\\\src\\\\main files\\\\%s_%s_StudentRecords.csv", section_course, section_year);
 
-    snprintf(file_section_sheet, PATH_SIZE, "..\\\\..\\\\Proposal Program\\\\src\\\\main files\\\\%s_%s_StudentSheet.csv", section_course, section_year);
 
     FILE* store_file = fopen("..\\..\\Proposal Program\\src\\main files\\section_menu.csv", "a");
     FILE* writePATHrecords = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_records.txt", "a");
-    FILE* writePATHsheet = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_sheets.txt", "a");
 
-        if (store_file == NULL || writePATHrecords == NULL || writePATHsheet == NULL) {
-            printf("Error Creating New File!\n");
+        if (store_file == NULL || writePATHrecords == NULL) {
+            printf("Error opening section_menu.csv or filepath_records.txt in addSection..");
             exit(1);
         }
+
     fprintf(store_file, "%s,%s,,,,,\n", section_course,section_year);
     fprintf(writePATHrecords,"%s\n", file_section_records);
-    fprintf(writePATHsheet, "%s\n",file_section_sheet);
+
     fclose(store_file);
     fclose(writePATHrecords);
-    fclose(writePATHsheet);
 
     FILE *studentRecordsFile = fopen(file_section_records, "w");
-    FILE *studentSheetFile = fopen(file_section_sheet, "w");
+        if (studentRecordsFile == NULL) {
+            printf("Error opening %s in addSection...\n", file_section_records);
+            exit(1);
+        }
 
-
-    if (studentRecordsFile == NULL || studentSheetFile == NULL) {
-        printf("Error creating files.\n");
-        return;
-    }
-
-    // WRITES HEADRES FOR STUDENT RECORDS
+    // WRITE HEADRES FOR STUDENT RECORDS
     fprintf(studentRecordsFile, "Student No.,Last Name,First Name,Sex\n");
 
-    // WRITE HEADERS FOR GRADESHEET
-    fprintf(studentSheetFile, "Written Task Score,Performance Task Score,Prelim Score,Midterm Score,Finals Score,Status\n");
-
     fclose(studentRecordsFile);
-    fclose(studentSheetFile);
+
+    //Return to main()
     system("cls");
     printf("Files created successfully.\n");
-    int num_sections = main();
+    main();
 }
 
-const char* openSection(int sectionIndex, int choice) {
+
+
+
+
+const char* openSection(int sectionIndex) {
     static char filePath[256];  // Static buffer to store the file path
 
-    FILE* file;
-
-    if (choice == 1) {
-        file = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_records.txt", "r");
+    FILE* file = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_records.txt", "r");
         if (file == NULL) {
-            printf("Error opening filepath_records.txt.\n");
-            return NULL;
+            printf("Error opening filepath_records.txt in openSection..\n");
+            exit(1);
         }
-    } else if (choice == 2) {
-        file = fopen("..\\..\\Proposal Program\\src\\main files\\filepath_sheets.txt", "r");
-        if (file == NULL) {
-            printf("Error opening filepath_sheets.txt.\n");
-            return NULL;
-        }
-    } else {
-        printf("Invalid choice.\n");
-        return NULL;
-    }
 
-    // Skip to the selected section index
+    // Skips to the selected section index
     char line[256];
     for (int i = 0; i < sectionIndex; i++) {
         if (fgets(line, sizeof(line), file) == NULL) {
-            printf("Invalid section index.\n");
+            printf("Invalid section index in openSection...\n");
             fclose(file);
             return NULL;
         }
@@ -395,7 +358,6 @@ const char* openSection(int sectionIndex, int choice) {
         *newlinePos = '\0';
     }
 
-    // Close the file and copy the file path to the static buffer
     fclose(file);
     strncpy(filePath, line, sizeof(filePath) - 1);
     filePath[sizeof(filePath) - 1] = '\0';  // Ensure null-termination
@@ -404,29 +366,28 @@ const char* openSection(int sectionIndex, int choice) {
 }
 
 
-void displayStudentRecord(int sectionIndex, int choice) {
-    const char* filePath = openSection(sectionIndex, choice);
+
+
+void displayStudentRecord(int sectionIndex) {
+    const char* filePath = openSection(sectionIndex);
         if (filePath != NULL) {
             // Use the file path to display the contents or perform other operations
             printf("File path: %s\n", filePath);
         } else {
             // Handle the case when the file path is not available
-            printf("Error retrieving file path.\n");
+            printf("Error retrieving file path in displayStudentRecord..\n");
         };
 
-// Call openSection function and assign the return value to filename
-    FILE* student_file;
-    student_file = fopen(filePath, "r");
-
-    if (student_file == NULL) {
-        printf("Error opening STUDENT records..\n");
-        exit(1);
-    }
+    FILE* student_file = fopen(filePath, "r");
+        if (student_file == NULL) {
+            printf("Error opening file in displayStudentRecord..\n");
+            exit(1);
+        }
 
     STUDENT student_info[BODY_SIZE];
     int num_students = 0;
 
-    // Skip the header line
+    // Skips the header line
     char header[100];
     char line[1024];
     fgets(header, sizeof(header), student_file);
@@ -449,79 +410,206 @@ void displayStudentRecord(int sectionIndex, int choice) {
     fclose(student_file);
 
     printf("\nNumber of Students: %d\n", num_students);
-    printLine('=', 87);
-    printf("| |   STUDENT ID   |  NAME    | SEX | \n");
-    printLine('=', 87);
+    printLine('=', 52);
+    printf("| |   STUDENT ID    |          NAME          | SEX | \n");
+    printLine('=', 52);
     for (int i = 0; i < num_students; i++) {
-        printf("|%d| %-16s| %s, %-6s | %c |\n",
+        printf("|%d| %-16s| %s, %-15s |  %c  |\n",
                i + 1,
                student_info[i].student_id,
                student_info[i].last_name,
                student_info[i].first_name,
                student_info[i].sex);
     }
-    printLine('=', 87);
+    printLine('=', 52);
+
 }
 
-void displayGradesheet(const char*filename){
-    FILE* student_file;
-    student_file = fopen(filename, "r");
 
-    if (student_file == NULL) {
-        printf("Error opening file..\n");
-        exit (1);
-    }
 
-    STUDENT student_info[BODY_SIZE];
-    int num_students = 0;
+void addStudentRecord(int sectionIndex){
+    char id_student[ID_SIZE];
+    char name_last[LAST_NAME];
+    char name_first[FIRST_NAME];
+    char sex_student;
+
+    printf("What is the STUDENT ID?\n");
+    scanf("%15s", id_student);
+    getchar();
+
+    printf("What is the LAST NAME of the student?\n");
+    scanf("%15s", name_last);
+    getchar();
+
+    printf("What is the FIRST NAME of the student?\n");
+    scanf("%15s", name_first);
+    getchar();
+
+    printf("What is the SEX of this student? ex. (M or F)?\n");
+    scanf("%c", &sex_student);
+    getchar();
+
+    const char* appendRecordpath = openSection(sectionIndex);
+
+    FILE* appendPATHrecords = fopen(appendRecordpath, "a");
+        if (appendPATHrecords == NULL) {
+            printf("Error appending file in addStudentRecord..\n");
+            exit(1);
+        }
+
+    fprintf(appendPATHrecords, "%s,%s,%s,%c\n", id_student, name_last, name_first,sex_student);
+
+    fclose(appendPATHrecords);
+
+    system("cls");
+    printf("Files created successfully.\n");
+}
+
+
+void createGradesheet(int sectionIndex){
+
+    const char* filePath = openSection(sectionIndex);
+    char filename[PATH_SIZE];
+    char buffer[PATH_SIZE];
+    FILE* fptr;
+    FILE* file = fopen(filePath, "r");
+        if (file == NULL) {
+            printf("Error reading file in sectionIndex.\n");
+            exit(1);
+        }
+
+    GRADESHEET gradesheets[BODY_SIZE];
+
+    char line[BODY_SIZE];
+    char student_id[ID_SIZE];
+    char last_name[LAST_NAME];
+    char first_name[FIRST_NAME];
+    char sex;
+    int num_passers = 0;
+    int num_gradesheets = 0;
+    bool validChoice = false;
 
     // Skip the header line
-    char header[100];
-    char line[1024];
-    fgets(header, sizeof(header), student_file);
+    fgets(line, sizeof(line), file);
 
-    while (fgets(line, sizeof(line), student_file)) {
+    // Read each line of the file
+    while (fgets(line, sizeof(line), file)) {
+        // Use sscanf to extract the columns
+        if (sscanf(line, "%[^,],%[^,],%[^,],%c", student_id, last_name, first_name, &sex) == 4)
+            {
+                strcpy(gradesheets[num_gradesheets].student_id, student_id);
+                strcpy(gradesheets[num_gradesheets].last_name, last_name);
+                strcpy(gradesheets[num_gradesheets].first_name, first_name);
+                gradesheets[num_gradesheets].sex = sex;
 
-        sscanf(line, "%[^,], %[^,], %[^,],  %c\n",
-               student_info[num_students].student_id,
-               student_info[num_students].first_name,
-               student_info[num_students].last_name,
-               student_info[num_students].sex);
+                num_gradesheets++;
 
-        num_students++;
+                if (num_gradesheets == BODY_SIZE) {
+                    printf("Maximum number of gradesheets reached.\n");
+                    break;
+                }
+            }
+    }
 
-        if (num_students == BODY_SIZE) {
-            printf("Maximum number of records reached..\n");
-            break;
+    fclose(file);
+
+    if (num_gradesheets == 0) {
+        system("cls");
+        printf("No records found in the file.\n");
+        main();
+    }
+
+    // Loop through gradesheets and ask for scores
+    for (int i = 0; i < num_gradesheets; i++) {
+        printf("Enter scores for %s %s (%s):\n", gradesheets[i].first_name, gradesheets[i].last_name, gradesheets[i].student_id);
+        printf("Written Test Score: ");
+        scanf("%d", &gradesheets[i].written_tscore);
+        printf("Performance Test Score: ");
+        scanf("%d", &gradesheets[i].perform_tscore);
+        printf("Exam Score: ");
+        scanf("%d", &gradesheets[i].exam_score);
+
+        // Compute average
+        gradesheets[i].total = gradesheets[i].written_tscore +
+                                gradesheets[i].perform_tscore +
+                                gradesheets[i].exam_score;
+        gradesheets[i].average = gradesheets[i].total / 3;
+
+        // Determine pass/fail status
+        if (gradesheets[i].average >= 50) {
+            strcpy(gradesheets[i].status, "PASSED");
+            num_passers++;
+
+        } else {
+            strcpy(gradesheets[i].status, "FAILED");
         }
     }
 
-    fclose(student_file);
-
-    printf("\nNumber of Students: %d\n", num_students);
+    // Display gradesheet in table form
     printLine('=',87);
-    printf("| |   STUDENT ID   |  NAME    | SEX | \n");
+    printf("|%-20s|%-14s |%-15s|%-10s|%-10s|%-10s|\n", "Student ID", "Last Name", "First Name", "Total", "Average", "Status");
     printLine('=',87);
-    for (int i = 0; i < num_students; i++) {
-
-    printf("|%d| %-16s| %-8s, %-d | %c |\n",
-       i,
-       student_info[i].student_id,
-       student_info[i].last_name,
-       student_info[i].first_name,
-       student_info[i].sex);
+    for (int i = 0; i < num_gradesheets; i++) {
+        printf("|%-20s|%-15s|%-15s|%-10d|%-9d |%-10s|\n",
+               gradesheets[i].student_id,
+               gradesheets[i].last_name,
+               gradesheets[i].first_name,
+               gradesheets[i].total,
+               gradesheets[i].average,
+               gradesheets[i].status);
     }
     printLine('=',87);
 
+    int choice;
+    printf("Would you like to download your gradesheet?\n");
+    printf("[1] Yes\n");
+    printf("[2] Return to Menu\n");
+    printf("Enter your choice: ");
+
+    while (!validChoice) {
+        scanf("%d", &choice);
+        if (choice != 1 && choice != 2) {
+            printf("Invalid Choice\n");
+        } else {
+            switch (choice) {
+                case 1:
+                    printf("What would you like to name the file?\n");
+                    scanf("%255s", buffer);  // Read input into buffer, limited to 255 characters
+                    replace_spaces(buffer);
+                    snprintf(filename, sizeof(filename), "..\\..\\Proposal Program\\Your Files\\%s.csv", buffer);
+                    fptr = fopen(filename, "w");
+                    if (fptr == NULL) {
+                        printf("Error creating CSV File.\n");
+                        exit(1);
+                    }
+                    fprintf(fptr, "STUDENT ID,LAST NAME,FIRST NAME,TOTAL SCORE,AVERAGE,STATUS\n");
+                    for (int i = 0; i < num_gradesheets; i++) {
+                        fprintf(fptr, "%s,%s,%s,%d,%d,%-10s\n",
+                                gradesheets[i].student_id,
+                                gradesheets[i].last_name,
+                                gradesheets[i].first_name,
+                                gradesheets[i].total,
+                                gradesheets[i].average,
+                                gradesheets[i].status);
+                    }
+                    fclose(fptr);
+                    printf("File Successfully Downloaded\n");
+                    printf("File is located at %s\n", filename);
+                    break;
+                case 2:
+                    validChoice = true;
+                    system("cls");
+                    main();
+                    break;
+                default:
+                    printf("Invalid choice. Please enter a valid option.\n");
+                    break;
+            }
+        }
+    }
 }
 
 
-
-void addStudentRecord(){
-}
-
-void addStudentGradesheet(){
-}
 
 
 
