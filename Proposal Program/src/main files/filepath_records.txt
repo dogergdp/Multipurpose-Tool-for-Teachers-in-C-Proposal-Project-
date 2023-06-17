@@ -1,4 +1,0 @@
-..\\..\\Proposal Program\\src\\main files\\BSCS_1A_StudentRecords.csv
-..\\..\\Proposal Program\\src\\main files\\BSIS_3D_StudentRecords.csv
-..\\..\\Proposal Program\\src\\main files\\BSIS_1A_StudentRecords.csv
-..\\..\\Proposal Program\\src\\main files\\WbSS_4E_StudentRecords.csv
